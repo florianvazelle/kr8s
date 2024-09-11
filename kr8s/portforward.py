@@ -6,6 +6,7 @@ This module provides a class for managing a port forward connection to a Kuberne
 """
 import threading
 import time
+from typing import TYPE_CHECKING
 
 from ._async_utils import sync
 from ._portforward import PortForward as _PortForward
@@ -15,6 +16,12 @@ from ._portforward import PortForward as _PortForward
 class PortForward(_PortForward):
     __doc__ = _PortForward.__doc__
     _bg_thread = None
+
+    if TYPE_CHECKING:
+
+        def __enter__(self, *args, **kwargs): ...  # noqa: D105
+        def __exit__(self, *args, **kwargs): ...  # noqa: D105
+        def run_forever(self) -> None: ...  # type: ignore[override]  # noqa: D102
 
     def start(self):
         """Start a background thread with the port forward running."""

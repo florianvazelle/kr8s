@@ -6,6 +6,11 @@ This module provides classes that represent Kubernetes resources.
 These classes are used to interact with resources in the Kubernetes API server.
 """
 from functools import partial
+from typing import TYPE_CHECKING, Any, BinaryIO, Generator, Literal
+
+import httpx
+
+from kr8s.portforward import PortForward as SyncPortForward
 
 from ._async_utils import run_sync, sync
 from ._objects import (
@@ -129,12 +134,46 @@ from ._objects import (
     object_from_spec as _object_from_spec,
 )
 from ._objects import objects_from_files as _objects_from_files
+from .api import Api as _Api
 
 
 @sync
 class APIObject(_APIObject):
     __doc__ = _APIObject.__doc__
     _asyncio = False
+
+    if TYPE_CHECKING:
+
+        @classmethod
+        def get(  # type: ignore[override]  # noqa: D102
+            cls,
+            name: str | None = None,
+            namespace: str | None = None,
+            api: _Api | None = None,
+            label_selector: str | dict[str, str] | None = None,
+            field_selector: str | dict[str, str] | None = None,
+            timeout: int = 2,
+            **kwargs,
+        ) -> "APIObject": ...
+        def exists(self, ensure=False) -> bool: ...  # type: ignore[override]  # noqa: D102
+        def create(self) -> None: ...  # type: ignore[override]  # noqa: D102
+        def delete(self, propagation_policy: str | None = None) -> None: ...  # type: ignore[override]  # noqa: D102
+        def refresh(self) -> None: ...  # type: ignore[override]  # noqa: D102
+        def patch(self, patch, *, subresource=None, type=None) -> None: ...  # type: ignore[override]  # noqa: D102
+        def scale(self, replicas: int | None = None) -> None: ...  # type: ignore[override]  # noqa: D102
+        def watch(self): ...  # type: ignore[override]  # noqa: D102
+        def wait(  # type: ignore[override]  # noqa: D102
+            self,
+            conditions: list[str] | str,
+            mode: Literal["any", "all"] = "any",
+            timeout: int | None = None,
+        ): ...
+        def annotate(self, annotations: dict | None = None, **kwargs) -> None: ...  # type: ignore[override]  # noqa: D102
+        def label(self, labels: dict | None = None, **kwargs) -> None: ...  # type: ignore[override]  # noqa: D102
+        def set_owner(self, owner: "APIObject") -> None: ...  # type: ignore[override]  # noqa: D102
+        def adopt(self, child: "APIObject") -> None: ...  # type: ignore[override]  # noqa: D102
+        @classmethod  # type: ignore[override]  # noqa: D102
+        def list(cls, **kwargs) -> "APIObject" | list["APIObject"]: ...  # type: ignore[override]  # noqa: D102
 
 
 @sync
@@ -184,6 +223,11 @@ class Node(_Node):
     __doc__ = _Node.__doc__
     _asyncio = False
 
+    if TYPE_CHECKING:
+
+        def cordon(self) -> None: ...  # type: ignore[override]  # noqa: D102
+        def uncordon(self) -> None: ...  # type: ignore[override]  # noqa: D102
+
 
 @sync
 class PersistentVolume(_PersistentVolume):
@@ -202,6 +246,40 @@ class Pod(_Pod):
     __doc__ = _Pod.__doc__
     _asyncio = False
 
+    if TYPE_CHECKING:
+
+        def ready(self) -> bool: ...  # type: ignore[override]  # noqa: D102
+        def logs(  # type: ignore[override]  # noqa: D102
+            self,
+            container=None,
+            pretty=None,
+            previous=False,
+            since_seconds=None,
+            since_time=None,
+            timestamps=False,
+            tail_lines=None,
+            limit_bytes=None,
+            follow=False,
+            timeout=3600,
+        ) -> Generator[str]: ...
+        def portforward(  # type: ignore[override]  # noqa: D102
+            self,
+            remote_port: int,
+            local_port: int | None = None,
+            address: list[str] | str = "127.0.0.1",
+        ) -> SyncPortForward: ...
+        def exec(  # type: ignore[override]  # noqa: D102
+            self,
+            command: list[str],
+            *,
+            container: str | None = None,
+            stdin: str | BinaryIO | None = None,
+            stdout: BinaryIO | None = None,
+            stderr: BinaryIO | None = None,
+            check: bool = True,
+            capture_output: bool = True,
+        ): ...
+
 
 @sync
 class PodTemplate(_PodTemplate):
@@ -213,6 +291,10 @@ class PodTemplate(_PodTemplate):
 class ReplicationController(_ReplicationController):
     __doc__ = _ReplicationController.__doc__
     _asyncio = False
+
+    if TYPE_CHECKING:
+
+        def ready(self): ...  # type: ignore[override]  # noqa: D102
 
 
 @sync
@@ -231,6 +313,35 @@ class Secret(_Secret):
 class Service(_Service):
     __doc__ = _Service.__doc__
     _asyncio = False
+
+    if TYPE_CHECKING:
+
+        def proxy_http_request(  # type: ignore[override]  # noqa: D102
+            self, method: str, path: str, port: int | None = None, **kwargs: Any
+        ) -> httpx.Response: ...
+        def async_proxy_http_request(  # type: ignore[override]  # noqa: D102
+            self, method: str, path: str, port: int | None = None, **kwargs: Any
+        ) -> httpx.Response: ...
+        def proxy_http_get(  # type: ignore[override]  # noqa: D102
+            self, path: str, port: int | None = None, **kwargs
+        ) -> httpx.Response: ...
+        def proxy_http_post(  # type: ignore[override]  # noqa: D102
+            self, path: str, port: int | None = None, **kwargs
+        ) -> None: ...
+        def proxy_http_put(  # type: ignore[override]  # noqa: D102
+            self, path: str, port: int | None = None, **kwargs
+        ) -> httpx.Response: ...
+        def proxy_http_delete(  # type: ignore[override]  # noqa: D102
+            self, path: str, port: int | None = None, **kwargs
+        ) -> httpx.Response: ...
+        def ready_pods(self) -> list[Pod]: ...  # type: ignore[override]  # noqa: D102
+        def ready(self) -> bool: ...  # type: ignore[override]  # noqa: D102
+        def portforward(  # type: ignore[override]  # noqa: D102
+            self,
+            remote_port: int,
+            local_port: int | None = None,
+            address: str | list[str] = "127.0.0.1",
+        ) -> SyncPortForward: ...
 
 
 @sync
@@ -255,6 +366,11 @@ class DaemonSet(_DaemonSet):
 class Deployment(_Deployment):
     __doc__ = _Deployment.__doc__
     _asyncio = False
+
+    if TYPE_CHECKING:
+
+        def pods(self) -> list[Pod]: ...  # type: ignore[override]  # noqa: D102
+        def ready(self): ...  # type: ignore[override]  # noqa: D102
 
 
 @sync
